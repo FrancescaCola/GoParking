@@ -1,0 +1,120 @@
+from datetime import datetime
+
+# --- DATABASES ---
+parking = {
+    '1': {'max_capacity': 20, 'cars_in': 7, 'price_per_hour': 2.5, 'brands': 'all'},
+    '2': {'max_capacity': 15, 'cars_in': 4, 'price_per_hour': 3.0, 'brands': 'all'},
+    '3': {'max_capacity': 10, 'cars_in': 2, 'price_per_hour': 4.0, 'brands': 'all'},
+    '4': {'max_capacity': 25, 'cars_in': 10, 'price_per_hour': 1.5, 'brands': 'all'},
+    '5': {'max_capacity': 10, 'cars_in': 5, 'price_per_hour': 7.0, 'brands': 'panda 4x4'},
+}
+
+cars = {}
+
+level_order = ['3', '2', '1', '4']
+
+# --- UTILITY FUNCTIONS ---
+def check_level_availability(level):
+    return parking[level]['max_capacity'] - parking[level]['cars_in'] > 0
+
+def availability():
+    return any(check_level_availability(level) for level in parking)
+
+def make_question(question, accepted_answer=['y', 'n', 'q']):
+    answer = input(question)
+    if answer.lower() not in accepted_answer:
+        print('Risposta non accettata')
+        return make_question(question, accepted_answer)
+    return answer.lower()
+
+def suggest_level(panda_answer):
+    if panda_answer == 'y' and check_level_availability('5'):
+        return '5'
+    for l in level_order:
+        if check_level_availability(l):
+            return l
+    return None
+
+def get_plate():
+    plate = input('Digitare numero di targa: ')
+    if plate[:2].isalpha() and plate[2:5].isdigit() and plate[-2:].isalpha():
+        return plate.upper()
+    return get_plate()
+
+def get_time():
+    return datetime.now()
+
+def add_to_plates(plate, entry_time, level):
+    cars[plate] = {'ingresso': entry_time, 'piano': level}
+
+def add_to_parking(level):
+    parking[level]['cars_in'] += 1
+
+def remove_from_parking(level):
+    parking[level]['cars_in'] -= 1
+
+def cars_in():
+    panda_answer = make_question('Hai una panda? (y/n): ', ['y', 'n'])
+    level = suggest_level(panda_answer)
+    if not level:
+        print("Parcheggio pieno!")
+        return
+    print(f'Ti è stato assegnato il piano {level}!')
+    plate = get_plate()
+    time = get_time()
+    add_to_plates(plate, time, level)
+    add_to_parking(level)
+    print("Macchina registrata con successo.")
+
+def car_out():
+    if not cars:
+        print("Nessuna auto da rimuovere.")
+        return
+    plate = make_question('Inserisci targa: ', list(cars.keys()))
+    entry_time = cars[plate]['ingresso']
+    level = cars[plate]['piano']
+    price_per_hour = parking[level]['price_per_hour']
+    current_time = get_time()
+    duration = current_time - entry_time
+    ore_intere = int(duration.total_seconds() / 3600) + 1
+    total_price = ore_intere * price_per_hour
+    print(f"Totale da pagare per la targa {plate}: €{total_price:.2f}")
+    remove_from_parking(level)
+    del cars[plate]
+    print("Uscita completata.")
+
+def show_status():
+    print("--- STATO PARCHEGGIO ---")
+    for level, data in parking.items():
+        disp = data['max_capacity'] - data['cars_in']
+        print(f"Piano {level}: {disp} posti disponibili")
+    print("--- AUTO PARCHEGGIATE ---")
+    for plate, info in cars.items():
+        print(f"Targa: {plate}, Piano: {info['piano']}, Entrata: {info['ingresso']}")
+
+def main_menu():
+    while True:
+        print("\n--- MENU PARCHEGGIO ---")
+        print("1. Ingresso auto")
+        print("2. Uscita auto")
+        print("3. Stato parcheggio")
+        print("4. Esci")
+        scelta = input("Scegli un'opzione (1-4): ")
+        if scelta == '1':
+            if availability():
+                cars_in()
+            else:
+                print("Parcheggio pieno!")
+        elif scelta == '2':
+            car_out()
+        elif scelta == '3':
+            show_status()
+        elif scelta == '4':
+            print("Chiusura programma.")
+            break
+        else:
+            print("Scelta non valida.")
+
+# Avvio programma
+main_menu()
+
